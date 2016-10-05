@@ -13,11 +13,13 @@ Download and install [VirtualBox](https://www.virtualbox.org/)
 
 ## After initial setup and for future deployments
 
-Go to the directory where the Vagrantfile and provision.yml files are saved and start virtual machine: 
+Go to the directory where the Vagrantfile and provision.yml files are saved and start virtual machine
 
 ```bash
 vagrant up
 ```
+
+Log into the virtual machine
 
 ```bash
 vagrant ssh
