@@ -4,7 +4,8 @@
   vars:
     app_name: "sufiaApp"
     ruby_version: "2.3.1"
-    rails_version: "4.2.7.1"    
+    rails_version: "5.0.0.1"
+    sufia_version: "7.2.0"
     gemset: "sufia"
     sources: "source ~/.bashrc; source ~/.bash_profile; source ~/.profile;"
   tasks:
@@ -33,9 +34,10 @@
       apt: name="oracle-java8-installer" state=present
     - name: Install RVM
       # CHECK
-      shell: "curl -sSL https://get.rvm.io | bash"
+      shell: "{{sources}} curl -sSL https://get.rvm.io | bash"      
       args:
         warn: no
+        creates: "~/.rvm"
     - name: Setup RVM
       # CHECK
       shell: "{{sources}} rvm install {{ruby_version}}; rvm use {{ruby_version}}@{{gemset}} --default --create"
@@ -59,18 +61,30 @@
 # Start of clean applocation
     - name: Create Rails application
       # CHECK
-      shell: "{{sources}} rails new ~/workspace/{{app_name}}"
+      shell: "{{sources}} rails new ~/workspace/{{app_name}}"      
       args:
         executable: /bin/bash
-    - name: Add Sufia 7 gem to Rails project
+        creates: "~/workspace/{{app_name}}"
+    - name: Add Sufia 7 gem and requirements to Rails project
       # CHECK
-      lineinfile: dest=~/workspace/{{app_name}}/Gemfile line="gem 'sufia', '7.1.0'"
+      # lineinfile: dest=~/workspace/{{app_name}}/Gemfile line="gem 'sufia', '{{sufia_version}}'"
+      blockinfile:
+        dest: ~/workspace/{{app_name}}/Gemfile
+        # insertafter: EOF
+        block: |        
+          gem 'sufia', '{{sufia_version}}'
+          gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
     - name: Install gems
       # CHECK
       shell: "{{sources}} bundle install"
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}
+    - name: Install Bootstrap 3
+      shell: "{{sources}} rails generate jquery:datatables:install bootstrap3"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}    
     - name: Create Sufia files
       # CHECK
       shell: "{{sources}} rails generate sufia:install -f; rails generate sufia:work Work"
@@ -79,7 +93,7 @@
         chdir: ~/workspace/{{app_name}}
     - name: Perform migration
       # CHECK
-      shell: "{{sources}} rake db:migrate"
+      shell: "{{sources}} rails db:migrate"
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}
@@ -114,9 +128,12 @@
           module Rails
             class Server
               def default_options
-                super.merge(Host:  '0.0.0.0', Port: 3000)
+                super.merge(Host: '0.0.0.0', Port: 3000)
               end
             end
           end
+    - name: Copy Sufia gem for easy lookup
+      copy: src=~/.rvm/gems/ruby-{{ruby_version}}@{{gemset}}/gems/sufia-{{sufia_version}} dest=~/workspace/sufia-{{sufia_version}}
+
 # End of clean application
 ...

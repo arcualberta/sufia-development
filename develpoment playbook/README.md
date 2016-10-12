@@ -29,7 +29,7 @@ Go to project directory on the virtual machine and start services
 
 ```bash
 cd ~/workspace/sufiaApp
-rake hydra:server
+rails hydra:server
 ```
 
 Happy coding!
