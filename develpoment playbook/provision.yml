@@ -74,6 +74,7 @@
         block: |        
           gem 'sufia', '{{sufia_version}}'
           gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
+          gem 'hydra-role-management'
     - name: Install gems
       # CHECK
       shell: "{{sources}} bundle install"
@@ -86,11 +87,20 @@
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}    
     - name: Create Sufia files
-      # CHECK
-      shell: "{{sources}} rails generate sufia:install -f; rails generate sufia:work Work"
+      shell: "{{sources}} rails generate sufia:install -f; rails generate sufia:work Work; rails generate roles"
       args:
         executable: /bin/bash
-        chdir: ~/workspace/{{app_name}}
+        chdir: ~/workspace/{{app_name}}    
+    # - name: Create Sufia Work
+    #   shell: "{{sources}} rails generate sufia:work Work"
+    #   args:
+    #     executable: /bin/bash
+    #     chdir: ~/workspace/{{app_name}}    
+    # - name: "Generate Sufia roles"
+    #   shell: "{{sources}} rails generate roles"
+    #   args:
+    #     executable: /bin/bash
+    #     chdir: ~/workspace/{{app_name}}
     - name: Perform migration
       # CHECK
       shell: "{{sources}} rails db:migrate"
