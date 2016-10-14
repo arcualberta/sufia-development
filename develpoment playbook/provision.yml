@@ -58,7 +58,7 @@
       shell: "{{sources}} ln -s /var/workspace ~/workspace"
       args:
         executable: /bin/bash
-# Start of clean applocation
+    # Start of clean application
     - name: Create Rails application
       # CHECK
       shell: "{{sources}} rails new ~/workspace/{{app_name}}"      
@@ -67,7 +67,6 @@
         creates: "~/workspace/{{app_name}}"
     - name: Add Sufia 7 gem and requirements to Rails project
       # CHECK
-      # lineinfile: dest=~/workspace/{{app_name}}/Gemfile line="gem 'sufia', '{{sufia_version}}'"
       blockinfile:
         dest: ~/workspace/{{app_name}}/Gemfile
         # insertafter: EOF
@@ -91,16 +90,6 @@
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}    
-    # - name: Create Sufia Work
-    #   shell: "{{sources}} rails generate sufia:work Work"
-    #   args:
-    #     executable: /bin/bash
-    #     chdir: ~/workspace/{{app_name}}    
-    # - name: "Generate Sufia roles"
-    #   shell: "{{sources}} rails generate roles"
-    #   args:
-    #     executable: /bin/bash
-    #     chdir: ~/workspace/{{app_name}}
     - name: Perform migration
       # CHECK
       shell: "{{sources}} rails db:migrate"
