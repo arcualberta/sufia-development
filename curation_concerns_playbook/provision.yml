@@ -1,0 +1,158 @@
+---
+- name: Set up sufia development environment
+  hosts: all 
+  vars:
+    app_name: "sufiaApp"
+    ruby_version: "2.3.1"
+    rails_version: "5.0.0.1"
+    sufia_version: "7.2.0"
+    gemset: "sufia"
+    sources: "source ~/.bashrc; source ~/.bash_profile; source ~/.profile;"
+  tasks:
+    - name: Update package list 
+      become: yes
+      apt_repository: 
+        repo: "ppa:webupd8team/java" 
+        state: present 
+        update_cache: yes
+    - name: Install required packages
+      become: yes
+      apt: name={{item}} state=present
+      with_items:
+        - curl
+        - python-software-properties
+        - nodejs
+        - redis-server
+        - unzip
+    - name: Ensure redis-server is running
+      become: yes
+      service: name=redis-server state=started enabled=yes
+    - name: Accept Oracle license
+      shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+    - name: Install Java 8
+      become: yes
+      apt: name="oracle-java8-installer" state=present
+    - name: Install RVM
+      # CHECK
+      shell: "{{sources}} curl -sSL https://get.rvm.io | bash"      
+      args:
+        warn: no
+        creates: "~/.rvm"
+    - name: Setup RVM
+      # CHECK
+      shell: "{{sources}} rvm install {{ruby_version}}; rvm use {{ruby_version}}@{{gemset}} --default --create"
+      args:
+        executable: /bin/bash
+    - name: Install Rails gems
+      # CHECK
+      shell: "{{sources}} gem install bundler; gem install rails -v {{rails_version}}"
+      args:
+        executable: /bin/bash
+    - name: Create application workspace directory
+      become: yes
+      file: 
+        path: /var/workspace
+        mode: 0777
+        state: directory
+    - name: Link workspace application directory
+      shell: "{{sources}} ln -s /var/workspace ~/workspace"
+      args:
+        executable: /bin/bash
+# Start of clean applocation
+    - name: Create Rails application
+      # CHECK
+      shell: "{{sources}} rails new ~/workspace/{{app_name}}"      
+      args:
+        executable: /bin/bash
+        creates: "~/workspace/{{app_name}}"
+    - name: Clone curation_concerns
+      - git: repo=https://github.com/projecthydra/curation_concerns.git dest=/var/workspace
+      # change branch to workflow
+    - name: Add Sufia 7 gem and requirements to Rails project
+      # CHECK
+      # lineinfile: dest=~/workspace/{{app_name}}/Gemfile line="gem 'sufia', '{{sufia_version}}'"
+      blockinfile:
+        dest: ~/workspace/{{app_name}}/Gemfile
+        # insertafter: EOF
+        block: |        
+          # gem 'sufia', '{{sufia_version}}'
+          # gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
+          gem 'hydra-works'
+          gem 'hydra-pcdm'
+          gem 'curation_concerns', path: '~/workspace/curation_concerns'
+          gem 'hydra-role-management'
+    - name: Install gems
+      # CHECK
+      shell: "{{sources}} bundle install"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Install Bootstrap 3
+      shell: "{{sources}} rails generate jquery:datatables:install bootstrap3"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}    
+    - name: Create Sufia files
+      shell: "{{sources}} rails generate sufia:install -f"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}    
+    - name: Create Sufia Work
+      shell: "{{sources}} rails generate sufia:work Work"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}    
+    - name: "Generate Sufia roles"
+      shell: "{{sources}} rails generate roles"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}    
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Perform migration
+      # CHECK
+      shell: "{{sources}} rails db:migrate"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Install fits.sh
+      become: yes      
+      unarchive:
+        src: http://projects.iq.harvard.edu/files/fits/files/fits-0.8.5.zip
+        dest: /opt/
+        remote_src: yes
+        copy: no
+    - name: Make fits.sh executable
+      become: yes
+      file:         
+        path: /opt/fits-0.8.5/
+        mode: 0777
+        recurse: yes
+    - name: Add fits.sh path to rails application
+      lineinfile: 
+        dest: ~/workspace/{{app_name}}/config/initializers/sufia.rb 
+        regexp: '# config.fits_path = "fits.sh"' 
+        line: 'config.fits_path = "/opt/fits-0.8.5/fits.sh"'
+    # - name: Create directory for record edit fields view
+    #   file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/ state=directory
+    # - name: Make sure view is being replaced
+    #   file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/_rights.html.erb state=touch
+    - name: Bind Rails application to all ports
+      blockinfile:
+        dest: ~/workspace/{{app_name}}/config/boot.rb
+        insertafter: EOF
+        block: |        
+          require 'rails/commands/server'
+          module Rails
+            class Server
+              def default_options
+                super.merge(Host: '0.0.0.0', Port: 3000)
+              end
+            end
+          end
+    - name: Copy Sufia gem for easy lookup
+      copy: src=~/.rvm/gems/ruby-{{ruby_version}}@{{gemset}}/gems/sufia-{{sufia_version}} dest=~/workspace/sufia-{{sufia_version}}
+
+# End of clean application
+...
