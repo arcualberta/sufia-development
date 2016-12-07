@@ -66,7 +66,7 @@
         executable: /bin/bash
         creates: "~/workspace/{{app_name}}"
     - name: Clone curation_concerns
-      - git: repo=https://github.com/projecthydra/curation_concerns.git dest=/var/workspace
+      git: repo=https://github.com/projecthydra/curation_concerns.git dest=/var/workspace
       # change branch to workflow
     - name: Add Sufia 7 gem and requirements to Rails project
       # CHECK

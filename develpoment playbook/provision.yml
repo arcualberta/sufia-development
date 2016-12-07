@@ -85,11 +85,21 @@
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}    
-    - name: Create Sufia files
-      shell: "{{sources}} rails generate sufia:install -f; rails generate sufia:work Work; rails generate roles"
+    - name: Generate Sufia files
+      shell: "{{sources}} rails generate sufia:install -f; sleep 2"
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}    
+    - name: Generate Sufia work
+      shell: "{{sources}} rails generate sufia:work Work; sleep 2"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Generate roles
+      shell: "{{sources}} rails generate roles"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
     - name: Perform migration
       # CHECK
       shell: "{{sources}} rails db:migrate"
@@ -114,10 +124,10 @@
         dest: ~/workspace/{{app_name}}/config/initializers/sufia.rb 
         regexp: '# config.fits_path = "fits.sh"' 
         line: 'config.fits_path = "/opt/fits-0.8.5/fits.sh"'
-    - name: Create directory for record edit fields view
-      file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/ state=directory
-    - name: Make sure view is being replaced
-      file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/_rights.html.erb state=touch
+    # - name: Create directory for record edit fields view
+    #   file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/ state=directory
+    # - name: Make sure view is being replaced
+    #   file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/_rights.html.erb state=touch
     - name: Bind Rails application to all ports
       blockinfile:
         dest: ~/workspace/{{app_name}}/config/boot.rb
