@@ -29,27 +29,21 @@ Go to project directory on the virtual machine and start services
 
 ```bash
 cd ~/workspace/sufiaApp
-rails hydra:server
+rake hydra:server
 ```
 
 After the server is up and running, you can access the application on [http://192.168.2.2:3000](http://192.168.2.2:3000). 
 
-In order to get administrator privileges you will need to create a regular account first through the sign up process.
+User accounts:
 
-After this is completed access the application console on the virtual machine
+The ansible playbook will create two user accounts
 
-```bash
-rails c
-```
+L: user@ualberta.ca
+P: user123
 
-On this console execute the following commands using your own information:
+L: admin@ualberta.ca
+P: admin123
 
-```
-admin = Role.create(name: "admin")
-admin.users << User.find_by_user_key( "YOUR.EMAIL@ualberta.ca" )
-admin.save
-```
-
-This account will now have full access to the Administrator panel.
+The admin@ualberta.ca account has full access to the Administration dashboard.
 
 Happy coding!

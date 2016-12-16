@@ -1,0 +1,6 @@
+
+sufia_playbook/*console.log
+sufia_playbook/workspace/
+sufia_playbook/.vagrant
+curation_concerns_playbook/*console.log
+curation_concerns_playbook/.vagrant

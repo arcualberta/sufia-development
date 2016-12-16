@@ -6,6 +6,11 @@
     ruby_version: "2.3.1"
     rails_version: "5.0.0.1"
     sufia_version: "7.2.0"
+    hydra_role_management_version: "0.2.2"
+    # curation_concerns gem 1.7 was causing problems as time of this writing
+    curation_concerns_version: "1.6.3"
+    figaro_version: "1.1.1"
+    # flipflop gem has not been released so we are using a copy from github
     gemset: "sufia"
     sources: "source ~/.bashrc; source ~/.bash_profile; source ~/.profile;"
   tasks:
@@ -58,6 +63,7 @@
       shell: "{{sources}} ln -s /var/workspace ~/workspace"
       args:
         executable: /bin/bash
+        creates: "~/workspace"
     # Start of clean application
     - name: Create Rails application
       # CHECK
@@ -73,7 +79,9 @@
         block: |        
           gem 'sufia', '{{sufia_version}}'
           gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
-          gem 'hydra-role-management'
+          gem 'hydra-role-management', '{{hydra_role_management_version}}'
+          gem 'curation_concerns', '{{curation_concerns_version}}'
+          gem 'figaro', '{{figaro_version}}'
     - name: Install gems
       # CHECK
       shell: "{{sources}} bundle install"
@@ -86,23 +94,44 @@
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}    
     - name: Generate Sufia files
-      shell: "{{sources}} rails generate sufia:install -f; sleep 2"
-      args:
-        executable: /bin/bash
-        chdir: ~/workspace/{{app_name}}    
-    - name: Generate Sufia work
-      shell: "{{sources}} rails generate sufia:work Work; sleep 2"
+      shell: "{{sources}} rails generate sufia:install -f"
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}
+    - name: Give Sufia migrations time delay
+      shell: sleep 2 
+    - name: Generate Sufia work
+      shell: "{{sources}} rails generate sufia:work Work"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Give Work migrations time delay
+      shell: sleep 2 
     - name: Generate roles
       shell: "{{sources}} rails generate roles"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Give Role migrations time delay
+      shell: sleep 2 
+    - name: Generate figaro files
+      shell: "{{sources}} bundle exec figaro install"
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}
     - name: Perform migration
       # CHECK
       shell: "{{sources}} rails db:migrate"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Create normal user
+      shell: "{{sources}} rails runner 'User.create!({email: \"user@ualberta.ca\", password:\"user123\", password_confirmation:\"user123\"})'"
+      args:
+        executable: /bin/bash
+        chdir: ~/workspace/{{app_name}}
+    - name: Create admin user
+      shell: "{{sources}} rails runner 'admin_user = User.create!({email: \"admin@ualberta.ca\", password:\"admin123\", password_confirmation:\"admin123\"}); admin_role = Role.create(name: \"admin\"); admin_role.users << admin_user; admin_role.save'"
       args:
         executable: /bin/bash
         chdir: ~/workspace/{{app_name}}
@@ -124,10 +153,6 @@
         dest: ~/workspace/{{app_name}}/config/initializers/sufia.rb 
         regexp: '# config.fits_path = "fits.sh"' 
         line: 'config.fits_path = "/opt/fits-0.8.5/fits.sh"'
-    # - name: Create directory for record edit fields view
-    #   file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/ state=directory
-    # - name: Make sure view is being replaced
-    #   file: path=~/workspace/{{app_name}}/app/views/records/edit_fields/_rights.html.erb state=touch
     - name: Bind Rails application to all ports
       blockinfile:
         dest: ~/workspace/{{app_name}}/config/boot.rb
